@@ -69,6 +69,30 @@ class BillingService(context: Context, private val products: List<Product>) {
         billingClient.endConnection()
     }
 
+    fun queryPurchases(productType: String) {
+        val builder = QueryPurchasesParams.newBuilder()
+        val queryPurchasesParams = builder
+            .setProductType(productType)
+            .build()
+
+        billingClient.queryPurchasesAsync(queryPurchasesParams) { billingResult, purchases ->
+            when (billingResult.responseCode) {
+                BillingResponseCode.OK -> {
+                    coroutineScope.launch {
+                        for (purchase in purchases) {
+                            _purchases.send(Either.Right(purchase))
+                        }
+                    }
+                }
+                else -> {
+                    coroutineScope.launch {
+                        _purchases.send(Either.Left(billingResult))
+                    }
+                }
+            }
+        }
+    }
+
     fun queryPurchases(queryPurchasesParams: QueryPurchasesParams) {
         billingClient.queryPurchasesAsync(queryPurchasesParams) { billingResult, purchases ->
             when (billingResult.responseCode) {
