@@ -9,16 +9,19 @@ import com.wing.tree.bruni.billing.model.Product
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import org.json.JSONObject
 
 class BillingService(context: Context, private val products: List<Product>) {
     private val ioDispatcher = Dispatchers.IO
     private val coroutineScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
-    private val _productDetailsList = mutableListOf<ProductDetails>()
-    val productDetailsList: List<ProductDetails> get() = _productDetailsList
+    private val _productDetailsList = MutableStateFlow<List<ProductDetails>?>(null)
+    val productDetailsList: StateFlow<List<ProductDetails>?> get() = _productDetailsList
 
-    private val _purchases = Channel<Either<BillingResult, Purchase>> {
+    private val _purchases = Channel<Either<BillingResult, Purchase>>(Channel.UNLIMITED) {
         if (it is Either.Right) {
             val purchase = it.value
 
@@ -183,22 +186,14 @@ class BillingService(context: Context, private val products: List<Product>) {
             val billingResult = productDetailsResult.billingResult
 
             when(billingResult.responseCode) {
-                BillingResponseCode.OK -> {
-                    productDetailsResult.productDetailsList?.let {
-                        _productDetailsList.clearAndAddAll(it)
-                    }
+                BillingResponseCode.OK -> with(productDetailsResult.productDetailsList) {
+                    _productDetailsList.update { this }
 
-                    Either.Right(productDetailsResult.productDetailsList)
+                    Either.Right(this)
                 }
                 else -> Either.Left(billingResult)
             }
         }
-    }
-
-    private fun <T> MutableList<T>.clearAndAddAll(elements: Collection<T>): Boolean {
-        clear()
-
-        return addAll(elements)
     }
 
     companion object {
