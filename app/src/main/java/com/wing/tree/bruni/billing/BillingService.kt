@@ -15,7 +15,7 @@ class BillingService(context: Context, private val products: List<Product>) {
     private val ioDispatcher = Dispatchers.IO
     private val coroutineScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
-    private val _purchases = Channel<Either<BillingResult, Purchase>> {
+    private val _purchaseList = Channel<Either<BillingResult, Purchase>> {
         if (it is Either.Right) {
             val purchase = it.value
 
@@ -35,7 +35,7 @@ class BillingService(context: Context, private val products: List<Product>) {
         }
     }
 
-    val purchases: ReceiveChannel<Either<BillingResult, Purchase>> get() = _purchases
+    val purchaseList: ReceiveChannel<Either<BillingResult, Purchase>> get() = _purchaseList
 
     private val purchasesUpdatedListener by lazy {
         PurchasesUpdatedListener { billingResult, purchases ->
@@ -44,13 +44,13 @@ class BillingService(context: Context, private val products: List<Product>) {
                     BillingResponseCode.OK -> {
                         coroutineScope.launch {
                             for (purchase in purchases) {
-                                _purchases.send(Either.Right(purchase))
+                                _purchaseList.send(Either.Right(purchase))
                             }
                         }
                     }
                     else -> {
                         coroutineScope.launch {
-                            _purchases.send(Either.Left(billingResult))
+                            _purchaseList.send(Either.Left(billingResult))
                         }
                     }
                 }
@@ -103,13 +103,13 @@ class BillingService(context: Context, private val products: List<Product>) {
                 BillingResponseCode.OK -> {
                     coroutineScope.launch {
                         for (purchase in purchases) {
-                            _purchases.send(Either.Right(purchase))
+                            _purchaseList.send(Either.Right(purchase))
                         }
                     }
                 }
                 else -> {
                     coroutineScope.launch {
-                        _purchases.send(Either.Left(billingResult))
+                        _purchaseList.send(Either.Left(billingResult))
                     }
                 }
             }
@@ -122,13 +122,13 @@ class BillingService(context: Context, private val products: List<Product>) {
                 BillingResponseCode.OK -> {
                     coroutineScope.launch {
                         for (purchase in purchases) {
-                            _purchases.send(Either.Right(purchase))
+                            _purchaseList.send(Either.Right(purchase))
                         }
                     }
                 }
                 else -> {
                     coroutineScope.launch {
-                        _purchases.send(Either.Left(billingResult))
+                        _purchaseList.send(Either.Left(billingResult))
                     }
                 }
             }
