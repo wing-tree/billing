@@ -64,19 +64,23 @@ class BillingService(private val context: Context, private val products: List<Pr
         }
     }
 
-    private var billingClient: BillingClient? = null
+    private val billingClient by lazy {
+        BillingClient
+            .newBuilder(context.applicationContext)
+            .setListener(purchasesUpdatedListener)
+            .enablePendingPurchases()
+            .build()
+    }
 
     fun endConnection() {
-        billingClient?.endConnection()
-
-        billingClient = null
+        billingClient.endConnection()
     }
 
     fun launchBillingFlow(
         activity: Activity,
         productDetails: ProductDetails,
         offerToken: String? = null
-    ): BillingResult? {
+    ): BillingResult {
         val builder = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(productDetails)
 
@@ -91,7 +95,7 @@ class BillingService(private val context: Context, private val products: List<Pr
             .setProductDetailsParamsList(productDetailsParamsList)
             .build()
 
-        return billingClient?.launchBillingFlow(activity, billingFlowParams)
+        return billingClient.launchBillingFlow(activity, billingFlowParams)
     }
 
     fun queryPurchases(productType: String) {
@@ -104,7 +108,7 @@ class BillingService(private val context: Context, private val products: List<Pr
     }
 
     fun queryPurchases(queryPurchasesParams: QueryPurchasesParams) {
-        billingClient?.queryPurchasesAsync(queryPurchasesParams) { billingResult, purchases ->
+        billingClient.queryPurchasesAsync(queryPurchasesParams) { billingResult, purchases ->
             when (billingResult.responseCode) {
                 BillingResponseCode.OK -> {
                     coroutineScope.launch {
@@ -123,16 +127,10 @@ class BillingService(private val context: Context, private val products: List<Pr
     }
 
     fun startConnection(billingClientStateListener: BillingClientStateListener) {
-        billingClient = BillingClient
-            .newBuilder(context.applicationContext)
-            .setListener(purchasesUpdatedListener)
-            .enablePendingPurchases()
-            .build()
-
-        billingClient?.startConnection(billingClientStateListener)
+        billingClient.startConnection(billingClientStateListener)
     }
 
-    suspend fun acknowledgePurchase(purchase: Purchase): Either<BillingResult?, Purchase> {
+    suspend fun acknowledgePurchase(purchase: Purchase): Either<BillingResult, Purchase> {
         return if (purchase.isAcknowledged) {
             Either.Right(purchase)
         } else {
@@ -142,9 +140,9 @@ class BillingService(private val context: Context, private val products: List<Pr
                 .build()
 
             withContext(ioDispatcher) {
-                val billingResult = billingClient?.acknowledgePurchase(acknowledgePurchaseParams)
+                val billingResult = billingClient.acknowledgePurchase(acknowledgePurchaseParams)
 
-                when(billingResult?.responseCode) {
+                when(billingResult.responseCode) {
                     BillingResponseCode.OK -> Either.Right(purchase)
                     else ->  Either.Left(billingResult)
                 }
@@ -152,24 +150,24 @@ class BillingService(private val context: Context, private val products: List<Pr
         }
     }
 
-    suspend fun consumePurchase(purchase: Purchase): Either<BillingResult?, Purchase> {
+    suspend fun consumePurchase(purchase: Purchase): Either<BillingResult, Purchase> {
         val consumeParams = ConsumeParams
             .newBuilder()
             .setPurchaseToken(purchase.purchaseToken)
             .build()
 
         return withContext(ioDispatcher) {
-            val consumeResult = billingClient?.consumePurchase(consumeParams)
-            val billingResult = consumeResult?.billingResult
+            val consumeResult = billingClient.consumePurchase(consumeParams)
+            val billingResult = consumeResult.billingResult
 
-            when(billingResult?.responseCode) {
+            when(billingResult.responseCode) {
                 BillingResponseCode.OK -> Either.Right(purchase)
                 else -> Either.Left(billingResult)
             }
         }
     }
 
-    suspend fun queryProductDetails(): Either<BillingResult?, List<ProductDetails>?> {
+    suspend fun queryProductDetails(): Either<BillingResult, List<ProductDetails>?> {
         val productList = products.map {
             QueryProductDetailsParams.Product
                 .newBuilder()
@@ -184,10 +182,10 @@ class BillingService(private val context: Context, private val products: List<Pr
             .build()
 
         return withContext(ioDispatcher) {
-            val productDetailsResult = billingClient?.queryProductDetails(queryProductDetailsParams)
-            val billingResult = productDetailsResult?.billingResult
+            val productDetailsResult = billingClient.queryProductDetails(queryProductDetailsParams)
+            val billingResult = productDetailsResult.billingResult
 
-            when(billingResult?.responseCode) {
+            when(billingResult.responseCode) {
                 BillingResponseCode.OK -> with(productDetailsResult.productDetailsList) {
                     _productDetailsList.update { this }
 
