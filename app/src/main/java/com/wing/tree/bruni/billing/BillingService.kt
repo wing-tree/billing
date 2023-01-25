@@ -2,9 +2,12 @@ package com.wing.tree.bruni.billing
 
 import android.app.Activity
 import android.content.Context
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import arrow.core.Either
 import com.android.billingclient.api.*
 import com.android.billingclient.api.BillingClient.BillingResponseCode
+import com.android.billingclient.api.BillingClient.ProductType
 import com.wing.tree.bruni.billing.model.Product
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -14,7 +17,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import org.json.JSONObject
 
-class BillingService(private val context: Context, private val products: List<Product>) {
+class BillingService(context: Context, private val products: List<Product>) {
+    private lateinit var billingClientStateListener: BillingClientStateListener
+
+    private val billingClient by lazy {
+        BillingClient
+            .newBuilder(context)
+            .setListener(purchasesUpdatedListener)
+            .enablePendingPurchases()
+            .build()
+    }
+
     private val ioDispatcher = Dispatchers.IO
     private val coroutineScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
@@ -64,14 +77,6 @@ class BillingService(private val context: Context, private val products: List<Pr
         }
     }
 
-    private val billingClient by lazy {
-        BillingClient
-            .newBuilder(context.applicationContext)
-            .setListener(purchasesUpdatedListener)
-            .enablePendingPurchases()
-            .build()
-    }
-
     fun endConnection() {
         billingClient.endConnection()
     }
@@ -96,6 +101,10 @@ class BillingService(private val context: Context, private val products: List<Pr
             .build()
 
         return billingClient.launchBillingFlow(activity, billingFlowParams)
+    }
+
+    fun reconnect() {
+        startConnection(billingClientStateListener)
     }
 
     fun queryPurchases(productType: String) {
@@ -124,6 +133,44 @@ class BillingService(private val context: Context, private val products: List<Pr
                 }
             }
         }
+    }
+
+    fun setup(
+        lifecycleOwner: LifecycleOwner,
+        onBillingServiceDisconnected: () -> Unit = {
+            reconnect()
+        },
+        onBillingSetupFinished: (billingResult: BillingResult) -> Unit
+    ) {
+        lifecycleOwner.lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onCreate(owner: LifecycleOwner) {
+                    super.onCreate(owner)
+
+                    billingClientStateListener = object : BillingClientStateListener {
+                        override fun onBillingServiceDisconnected() {
+                            onBillingServiceDisconnected()
+                        }
+
+                        override fun onBillingSetupFinished(billingResult: BillingResult) {
+                            onBillingSetupFinished(billingResult)
+                        }
+                    }
+
+                    startConnection(billingClientStateListener)
+                }
+
+                override fun onResume(owner: LifecycleOwner) {
+                    super.onResume(owner)
+                    queryPurchases(ProductType.INAPP)
+                }
+
+                override fun onDestroy(owner: LifecycleOwner) {
+                    endConnection()
+                    super.onDestroy(owner)
+                }
+            }
+        )
     }
 
     fun startConnection(billingClientStateListener: BillingClientStateListener) {
