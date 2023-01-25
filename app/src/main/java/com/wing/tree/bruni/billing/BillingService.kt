@@ -15,6 +15,9 @@ class BillingService(context: Context, private val products: List<Product>) {
     private val ioDispatcher = Dispatchers.IO
     private val coroutineScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
+    private val _productDetailsList = mutableListOf<ProductDetails>()
+    val productDetailsList: List<ProductDetails> get() = _productDetailsList
+
     private val _purchases = Channel<Either<BillingResult, Purchase>> {
         if (it is Either.Right) {
             val purchase = it.value
@@ -98,22 +101,7 @@ class BillingService(context: Context, private val products: List<Product>) {
             .setProductType(productType)
             .build()
 
-        billingClient.queryPurchasesAsync(queryPurchasesParams) { billingResult, purchases ->
-            when (billingResult.responseCode) {
-                BillingResponseCode.OK -> {
-                    coroutineScope.launch {
-                        for (purchase in purchases) {
-                            _purchases.send(Either.Right(purchase))
-                        }
-                    }
-                }
-                else -> {
-                    coroutineScope.launch {
-                        _purchases.send(Either.Left(billingResult))
-                    }
-                }
-            }
-        }
+        queryPurchases(queryPurchasesParams)
     }
 
     fun queryPurchases(queryPurchasesParams: QueryPurchasesParams) {
@@ -195,10 +183,22 @@ class BillingService(context: Context, private val products: List<Product>) {
             val billingResult = productDetailsResult.billingResult
 
             when(billingResult.responseCode) {
-                BillingResponseCode.OK -> Either.Right(productDetailsResult.productDetailsList)
+                BillingResponseCode.OK -> {
+                    productDetailsResult.productDetailsList?.let {
+                        _productDetailsList.clearAndAddAll(it)
+                    }
+
+                    Either.Right(productDetailsResult.productDetailsList)
+                }
                 else -> Either.Left(billingResult)
             }
         }
+    }
+
+    private fun <T> MutableList<T>.clearAndAddAll(elements: Collection<T>): Boolean {
+        clear()
+
+        return addAll(elements)
     }
 
     companion object {
