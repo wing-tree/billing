@@ -1,5 +1,6 @@
 package com.wing.tree.bruni.billing
 
+import android.app.Activity
 import android.content.Context
 import arrow.core.Either
 import com.android.billingclient.api.*
@@ -67,6 +68,28 @@ class BillingService(context: Context, private val products: List<Product>) {
 
     fun endConnection() {
         billingClient.endConnection()
+    }
+
+    fun launchBillingFlow(
+        activity: Activity,
+        productDetails: ProductDetails,
+        offerToken: String? = null
+    ): BillingResult {
+        val builder = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(productDetails)
+
+        offerToken?.let {
+            builder.setOfferToken(it)
+        }
+
+        val productDetailsParams = builder.build()
+        val productDetailsParamsList = listOf(productDetailsParams)
+
+        val billingFlowParams = BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(productDetailsParamsList)
+            .build()
+
+        return billingClient.launchBillingFlow(activity, billingFlowParams)
     }
 
     fun queryPurchases(productType: String) {
