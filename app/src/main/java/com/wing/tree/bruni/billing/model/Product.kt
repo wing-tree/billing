@@ -4,6 +4,10 @@ data class Product(
     val id: String,
     val type: Type
 ) {
-    val isConsumable: Boolean get() = type is Type.Inapp.Consumable
+    val consumable: Boolean = when(type) {
+        is Type.INAPP -> type.consumable
+        else -> false
+    }
+
     val productType = type.productType
 }

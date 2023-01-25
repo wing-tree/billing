@@ -43,7 +43,7 @@ class BillingService(context: Context, private val products: List<Product>) {
                     products.find { product ->
                         product.id == id
                     }?.let { product ->
-                        if (product.isConsumable) {
+                        if (product.consumable) {
                             consumePurchase(purchase)
                         } else {
                             acknowledgePurchase(purchase)
