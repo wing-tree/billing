@@ -1,13 +1,23 @@
 package com.wing.tree.bruni.billing.model
 
-data class Product(
-    val id: String,
-    val type: Type
-) {
-    val consumable: Boolean = when(type) {
-        is Type.INAPP -> type.consumable
-        else -> false
+import com.android.billingclient.api.BillingClient
+
+sealed class Product {
+    abstract val id: String
+    abstract val productType: String
+
+    data class INAPP(
+        override val id: String,
+        val consumable: Boolean
+    ) : Product() {
+        override val productType: String
+            get() = BillingClient.ProductType.INAPP
     }
 
-    val productType = type.productType
+    data class SUBS(
+        override val id: String
+    ) : Product() {
+        override val productType: String
+            get() = BillingClient.ProductType.SUBS
+    }
 }
