@@ -225,6 +225,13 @@ class BillingService(context: Context, private val products: List<Product>) {
         }
     }
 
+    suspend fun processPurchase(purchase: Purchase): Either<BillingResult, Purchase> {
+        return when {
+            consumable(purchase) -> consumePurchase(purchase)
+            else -> acknowledgePurchase(purchase)
+        }
+    }
+
     suspend fun queryProductDetails(): Either<BillingResult, List<ProductDetails>?> {
         val productList = products.map {
             QueryProductDetailsParams.Product
