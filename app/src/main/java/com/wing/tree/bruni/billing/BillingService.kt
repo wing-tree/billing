@@ -118,7 +118,7 @@ class BillingService(context: Context, private val products: List<Product>) {
         startConnection(billingClientStateListener)
     }
 
-    fun queryPurchases(productType: String) {
+    fun queryPurchases(@ProductType productType: String) {
         val builder = QueryPurchasesParams.newBuilder()
         val queryPurchasesParams = builder
             .setProductType(productType)
