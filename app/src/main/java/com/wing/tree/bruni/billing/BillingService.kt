@@ -8,6 +8,8 @@ import arrow.core.Either
 import com.android.billingclient.api.*
 import com.android.billingclient.api.BillingClient.BillingResponseCode
 import com.android.billingclient.api.BillingClient.ProductType
+import com.wing.tree.bruni.billing.extension.consumable
+import com.wing.tree.bruni.billing.extension.get
 import com.wing.tree.bruni.billing.model.Product
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -39,11 +41,11 @@ class BillingService(context: Context, private val products: List<Product>) {
             val purchase = it.value
 
             coroutineScope.launch {
-                purchase.products.forEach { id ->
-                    products.find { product ->
-                        product.id == id
-                    }?.let { product ->
-                        when(product) {
+                if (purchase.purchased) {
+                    purchase.products.forEach { id ->
+                        val product = products[id] ?: return@forEach
+
+                        when (product) {
                             is Product.INAPP -> {
                                 if (product.consumable) {
                                     consumePurchase(purchase)
@@ -80,6 +82,10 @@ class BillingService(context: Context, private val products: List<Product>) {
                 }
             }
         }
+    }
+
+    fun consumable(purchase: Purchase): Boolean {
+        return products.consumable().map { it.id }.containsAll(purchase.products)
     }
 
     fun endConnection() {
@@ -239,7 +245,9 @@ class BillingService(context: Context, private val products: List<Product>) {
 
             when(billingResult.responseCode) {
                 BillingResponseCode.OK -> with(productDetailsResult.productDetailsList) {
-                    _productDetailsList.update { this }
+                    _productDetailsList.update {
+                        this
+                    }
 
                     Either.Right(this)
                 }
