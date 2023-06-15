@@ -1,3 +1,5 @@
+@file:Suppress("MemberVisibilityCanBePrivate", "unused")
+
 package com.wing.tree.bruni.billing
 
 import android.app.Activity
@@ -53,6 +55,7 @@ class BillingService(context: Context, private val products: List<Product>) {
                                     acknowledgePurchase(purchase)
                                 }
                             }
+
                             is Product.SUBS -> acknowledgePurchase(purchase)
                         }
                     }
@@ -74,6 +77,7 @@ class BillingService(context: Context, private val products: List<Product>) {
                             }
                         }
                     }
+
                     else -> {
                         coroutineScope.launch {
                             _purchases.send(Either.Left(billingResult))
@@ -137,6 +141,7 @@ class BillingService(context: Context, private val products: List<Product>) {
                         }
                     }
                 }
+
                 else -> {
                     coroutineScope.launch {
                         _purchases.send(Either.Left(billingResult))
@@ -200,9 +205,9 @@ class BillingService(context: Context, private val products: List<Product>) {
             withContext(ioDispatcher) {
                 val billingResult = billingClient.acknowledgePurchase(acknowledgePurchaseParams)
 
-                when(billingResult.responseCode) {
+                when (billingResult.responseCode) {
                     BillingResponseCode.OK -> Either.Right(purchase)
-                    else ->  Either.Left(billingResult)
+                    else -> Either.Left(billingResult)
                 }
             }
         }
@@ -218,7 +223,7 @@ class BillingService(context: Context, private val products: List<Product>) {
             val consumeResult = billingClient.consumePurchase(consumeParams)
             val billingResult = consumeResult.billingResult
 
-            when(billingResult.responseCode) {
+            when (billingResult.responseCode) {
                 BillingResponseCode.OK -> Either.Right(purchase)
                 else -> Either.Left(billingResult)
             }
@@ -250,7 +255,7 @@ class BillingService(context: Context, private val products: List<Product>) {
             val productDetailsResult = billingClient.queryProductDetails(queryProductDetailsParams)
             val billingResult = productDetailsResult.billingResult
 
-            when(billingResult.responseCode) {
+            when (billingResult.responseCode) {
                 BillingResponseCode.OK -> with(productDetailsResult.productDetailsList) {
                     _productDetailsList.update {
                         this
@@ -258,6 +263,7 @@ class BillingService(context: Context, private val products: List<Product>) {
 
                     Either.Right(this)
                 }
+
                 else -> Either.Left(billingResult)
             }
         }
