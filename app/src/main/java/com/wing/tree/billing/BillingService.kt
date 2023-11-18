@@ -1,6 +1,6 @@
 @file:Suppress("MemberVisibilityCanBePrivate", "unused")
 
-package com.wing.tree.bruni.billing
+package com.wing.tree.billing
 
 import android.app.Activity
 import android.content.Context
@@ -10,9 +10,9 @@ import arrow.core.Either
 import com.android.billingclient.api.*
 import com.android.billingclient.api.BillingClient.BillingResponseCode
 import com.android.billingclient.api.BillingClient.ProductType
-import com.wing.tree.bruni.billing.extension.consumable
-import com.wing.tree.bruni.billing.extension.get
-import com.wing.tree.bruni.billing.model.Product
+import com.wing.tree.billing.extension.consumable
+import com.wing.tree.billing.extension.get
+import com.wing.tree.billing.model.Product
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel

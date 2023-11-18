@@ -1,7 +1,9 @@
-package com.wing.tree.bruni.billing.extension
+@file:Suppress("unused")
+
+package com.wing.tree.billing.extension
 
 import com.android.billingclient.api.Purchase
-import com.wing.tree.bruni.billing.model.Product
+import com.wing.tree.billing.model.Product
 
 operator fun List<Product>.get(id: String): Product? = find { it.id == id }
 operator fun List<Product>.get(purchase: Purchase): Product? = find {

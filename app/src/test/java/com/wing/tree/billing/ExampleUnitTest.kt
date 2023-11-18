@@ -1,4 +1,4 @@
-package com.wing.tree.bruni.billing
+package com.wing.tree.billing
 
 import org.junit.Test
 

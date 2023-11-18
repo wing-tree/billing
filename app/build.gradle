@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace 'com.wing.tree.bruni.billing'
+    namespace 'com.wing.tree.billing'
     compileSdk 34
 
     defaultConfig {
@@ -32,14 +32,16 @@ android {
 }
 
 dependencies {
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    api 'com.android.billingclient:billing-ktx:6.1.0'
+    api 'io.arrow-kt:arrow-core:1.0.1'
 
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.core:core-ktx:1.12.0'
-    api 'com.android.billingclient:billing-ktx:6.0.1'
-    api 'io.arrow-kt:arrow-core:1.0.1'
+
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
 
 group='com.github.wing-tree'

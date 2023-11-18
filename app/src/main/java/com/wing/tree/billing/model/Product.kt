@@ -1,4 +1,4 @@
-package com.wing.tree.bruni.billing.model
+package com.wing.tree.billing.model
 
 import com.android.billingclient.api.BillingClient
 
