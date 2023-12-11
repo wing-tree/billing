@@ -7,18 +7,35 @@ import android.content.Context
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import arrow.core.Either
-import com.android.billingclient.api.*
+import com.android.billingclient.api.AcknowledgePurchaseParams
+import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.BillingResponseCode
 import com.android.billingclient.api.BillingClient.ProductType
+import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
+import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.ConsumeParams
+import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.PurchasesUpdatedListener
+import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.api.acknowledgePurchase
+import com.android.billingclient.api.consumePurchase
+import com.android.billingclient.api.queryProductDetails
 import com.wing.tree.billing.extension.consumable
 import com.wing.tree.billing.extension.get
 import com.wing.tree.billing.model.Product
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 class BillingService(context: Context, private val products: List<Product>) {
@@ -33,7 +50,7 @@ class BillingService(context: Context, private val products: List<Product>) {
     }
 
     private val ioDispatcher = Dispatchers.IO
-    private val coroutineScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    private val coroutineScope = CoroutineScope(SupervisorJob().plus(ioDispatcher))
 
     private val _productDetailsList = MutableStateFlow<List<ProductDetails>?>(null)
     val productDetailsList: StateFlow<List<ProductDetails>?> get() = _productDetailsList
@@ -153,9 +170,7 @@ class BillingService(context: Context, private val products: List<Product>) {
 
     fun setup(
         lifecycleOwner: LifecycleOwner,
-        onBillingServiceDisconnected: () -> Unit = {
-            reconnect()
-        },
+        onBillingServiceDisconnected: (() -> Unit)? = null,
         onBillingSetupFinished: (billingResult: BillingResult) -> Unit
     ) {
         lifecycleOwner.lifecycle.addObserver(
@@ -165,7 +180,7 @@ class BillingService(context: Context, private val products: List<Product>) {
 
                     billingClientStateListener = object : BillingClientStateListener {
                         override fun onBillingServiceDisconnected() {
-                            onBillingServiceDisconnected()
+                            onBillingServiceDisconnected?.invoke()
                         }
 
                         override fun onBillingSetupFinished(billingResult: BillingResult) {
